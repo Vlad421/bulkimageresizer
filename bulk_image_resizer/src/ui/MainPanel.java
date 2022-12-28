@@ -36,9 +36,10 @@ import javax.swing.UIManager;
 import model.ImagesHandler;
 import utils.ImageFilter;
 import utils.TxfFilter;
+import utils.WorkerCallback;
 
 @SuppressWarnings("serial")
-public class MainPanel extends JPanel {
+public class MainPanel extends JPanel implements WorkerCallback {
 
 	private ThumbnailsPanel thumbnailsPanel;
 	private JScrollPane scrollPane;
@@ -54,13 +55,13 @@ public class MainPanel extends JPanel {
 	private JButton btnProcess;
 	private ImagesHandler images;
 	private ImageFilter filter;
-	private boolean isAddingProcessing;
 
 	private JTextField txfWidth;
 	private JTextField txfHeigth;
 	private JPanel panelOptions;
 	private JCheckBox cbAspectRatio;
 	private JCheckBox cbFast;
+	private boolean isWorking;
 
 	public MainPanel(ImagesHandler images) {
 		filter = new ImageFilter();
@@ -76,10 +77,10 @@ public class MainPanel extends JPanel {
 
 		picker = new DirectoryPicker();
 		GridBagConstraints gbcToolBar = new GridBagConstraints();
-		// gbcToolBar.insets = new Insets(0, 0, 5, 0);
+		
 		gbcToolBar.anchor = GridBagConstraints.NORTH;
 		gbcToolBar.fill = GridBagConstraints.HORIZONTAL;
-		// gbcToolBar.weightx = 1;
+	
 		gbcToolBar.gridx = 0;
 		gbcToolBar.gridy = 0;
 		add(toolBar, gbcToolBar);
@@ -189,10 +190,6 @@ public class MainPanel extends JPanel {
 
 	}
 
-	public void setAddingProcessing(boolean isAddingProcessing) {
-		this.isAddingProcessing = isAddingProcessing;
-	}
-
 	public void switchFocus() {
 		scrollPane.requestFocusInWindow();
 	}
@@ -289,8 +286,8 @@ public class MainPanel extends JPanel {
 		List<File> filesList = new ArrayList<>();
 
 		public synchronized void drop(DropTargetDropEvent evt) {
-			if (!isAddingProcessing) {
-				isAddingProcessing = true;
+			if (!isWorking) {
+				
 				filesList.clear();
 				evt.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
 				Transferable t = evt.getTransferable();
@@ -329,6 +326,18 @@ public class MainPanel extends JPanel {
 
 		}
 
+	}
+
+	@Override
+	public void setWorking(boolean working) {
+		this.isWorking = working;
+
+	}
+
+	@Override
+	public boolean isWorking() {
+
+		return isWorking;
 	}
 
 }

@@ -107,7 +107,7 @@ public class ImageHolder extends JLabel implements ThumbnailProgressListener, Pr
 		progressBar.setVisible(true);
 		ImageWriter writer = ImageWriter.build().setImage(file).setFormat(ImageFilter.getExtention(getName()))
 				.setOutput(outputDir).setProgressCallback(this);
-		System.out.println(writer);
+	//	System.out.println(writer);
 		writer.write(2000, 2000);
 		isProcessing = false;
 		Executors.newSingleThreadScheduledExecutor().schedule(new TimerTask() {

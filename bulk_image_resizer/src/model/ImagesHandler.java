@@ -108,14 +108,15 @@ public class ImagesHandler {
 	public void setOutDir(File outDir) {
 
 		this.outDir = outDir;
+		isOutManualySet = true;
 
 	}
 
 	private void setOutDir() {
-		if (!isMixedDir) {
+		if (!isMixedDir && !isOutManualySet) {
 			this.outDir = new File(inDir.getPath() + "\\out");
 			// outDir.mkdir();
-		} else {
+		} else if (!isOutManualySet) {
 			this.outDir = null;
 		}
 
@@ -135,7 +136,7 @@ public class ImagesHandler {
 
 	private void getImagesFromDir(File images) {
 		List<File> imgDir = new ArrayList<>(Arrays.asList(images.listFiles(new ImageFilter())));
-	
+
 		for (File file : imgDir) {
 			imageList.add(file);
 			latestAddedImages.add(file);
@@ -154,6 +155,7 @@ public class ImagesHandler {
 	public void setAspectRatioKeep(boolean isAspectRatioKeep) {
 		this.isAspectRatioKeep = isAspectRatioKeep;
 	}
+
 	public File getImage(int index) {
 		return imageList.get(index);
 	}

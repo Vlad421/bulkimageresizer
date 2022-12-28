@@ -13,14 +13,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
@@ -28,6 +26,7 @@ import javax.swing.SwingWorker;
 
 import model.ImageHolder;
 import model.ImagesHandler;
+import utils.WorkerCallback;
 
 @SuppressWarnings("serial")
 public class ThumbnailsPanel extends JPanel {
@@ -37,11 +36,13 @@ public class ThumbnailsPanel extends JPanel {
 	private List<ImageHolder> icons = new ArrayList<>();
 	private ImagesHandler images;
 	private MainPanel mainPanel;
+	private WorkerCallback workerCallback;
 
 	public ThumbnailsPanel(ImagesHandler images, JProgressBar progressBar, MainPanel mainPanel) {
 		this.images = images;
 		this.progressBar = progressBar;
 		this.mainPanel = mainPanel;
+		this.workerCallback = mainPanel;
 		layout = new GridLayout(0, 3, 5, 5);
 		progressBar.setStringPainted(true);
 
@@ -58,6 +59,7 @@ public class ThumbnailsPanel extends JPanel {
 		ThumbnailWorker worker = new ThumbnailWorker(images.getLatestAddedImages());
 
 		worker.addPropertyChangeListener(worker);
+
 		worker.execute();
 	}
 
@@ -65,49 +67,47 @@ public class ThumbnailsPanel extends JPanel {
 	int currentThread;
 
 	public void doIt() {
+		workerCallback.setWorking(true);
+		progressBar.setValue(0);
+		new Thread(new Runnable() {
 
-//		for (ImageHolder imageHolder : icons) {
-//			new Thread(imageHolder).start();
-//		}
+			@Override
+			public void run() {
+				while (workerCallback.isWorking()) {
+					try {
+						Thread.sleep(500);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+					if (!(progressBar.getValue() < 100)) {
+						Executors.newSingleThreadScheduledExecutor().schedule(new TimerTask() {
+
+							@Override
+							public void run() {
+								SwingUtilities.invokeLater(() -> progressBar.setVisible(false));
+
+							}
+						}, 3, TimeUnit.SECONDS);
+						workerCallback.setWorking(false);
+						System.out.println(mainPanel.isWorking());
+					}
+				}
+
+			}
+		}).start();
 		for (int i = 1; i <= 10; i++) {
 			if (icons.size() % i == 0) {
 				threadAmount = i;
 			}
 
 		}
-
-		for (currentThread = 0; currentThread < threadAmount; currentThread++) {
-			new Thread(new Runnable() {
-				int threadNum = currentThread;
-				int picsCount = icons.size() / threadAmount * (currentThread + 1);
-				int start = icons.size() / threadAmount * threadNum;
-
-				@Override
-				public void run() {
-
-					// while (true) {
-					for (int j = start; j < picsCount; j++) {
-						icons.get(j).doIt(images.getOutDir());
-						// System.out.println(images.getImageList());
-//						ImageWriter writer = ImageWriter.build().setImage(images.getImage(j))
-//								.setFormat(ImageFilter.getExtention(icons.get(j).getName()))
-//								.setOutput(images.getOutDir());
-//						// System.out.println(writer);
-//						writer.write(2000, 2000);
-					}
-					System.out.println("current thread - " + threadNum + ", pics count = " + picsCount);
-					// }
-
-				}
-			}).start();
-		}
-
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
 
-				while (true) {
+				while (workerCallback.isWorking()) {
 					try {
 						Thread.sleep(500);
 					} catch (InterruptedException e) {
@@ -121,6 +121,27 @@ public class ThumbnailsPanel extends JPanel {
 
 			}
 		}).start();
+
+		for (currentThread = 0; currentThread < threadAmount; currentThread++) {
+			new Thread(new Runnable() {
+				int threadNum = currentThread;
+				int picsCount = icons.size() / threadAmount * (currentThread + 1);
+				int start = icons.size() / threadAmount * threadNum;
+
+				@Override
+				public void run() {
+
+					for (int j = start; j < picsCount; j++) {
+						icons.get(j).doIt(images.getOutDir());
+
+					}
+					System.out.println("current thread - " + threadNum + ", pics count = " + picsCount);
+
+				}
+			}).start();
+
+		}
+
 	}
 
 	class ThumbnailWorker extends SwingWorker<Void, ImageHolder> implements PropertyChangeListener {
@@ -128,7 +149,6 @@ public class ThumbnailsPanel extends JPanel {
 		private int currentImage;
 		private ImageIcon icon;
 		private ImageHolder label;
-		private JLabel iconlLabel;
 
 		List<File> toWork;
 
@@ -138,6 +158,7 @@ public class ThumbnailsPanel extends JPanel {
 
 		@Override
 		protected Void doInBackground() throws Exception {
+			workerCallback.setWorking(true);
 			setProgress(0);
 
 			if (toWork.size() != 0) {
@@ -146,16 +167,14 @@ public class ThumbnailsPanel extends JPanel {
 			}
 
 			imageCount = toWork.size();
-			for (int i = 0; i < imageCount; i++) {
-
-				currentImage = i;
+			for (int currentImage = 0; currentImage < imageCount; currentImage++) {
 
 				BufferedImage image;
 				try {
 					image = ImageIO.read(toWork.get(currentImage));
 					if (image != null) {
 						icon = new ImageIcon(image.getScaledInstance(160, 160, Image.SCALE_FAST));
-						iconlLabel = new JLabel(icon);
+
 						label = new ImageHolder(icon, toWork.get(currentImage));
 
 						setProgress(getCurrentProgress());
@@ -164,7 +183,7 @@ public class ThumbnailsPanel extends JPanel {
 						publish(label);
 
 					} else {
-						System.out.println("not an image - " + toWork.get(i).getPath());
+						System.out.println("not an image - " + toWork.get(currentImage).getPath());
 					}
 
 				} catch (IOException | NullPointerException e) {
@@ -182,15 +201,15 @@ public class ThumbnailsPanel extends JPanel {
 			progressBar.setValue(100);
 			SwingUtilities.invokeLater(() -> revalidate());
 
-			TimerTask task = new TimerTask() {
-
-				@Override
-				public void run() {
-					SwingUtilities.invokeLater(() -> progressBar.setVisible(false));
-
-				}
-			};
-			new Timer().schedule(task, 3000);
+//			TimerTask task = new TimerTask() {
+//
+//				@Override
+//				public void run() {
+//					SwingUtilities.invokeLater(() -> progressBar.setVisible(false));
+//
+//				}
+//			};
+//			new Timer().schedule(task, 3000);
 
 			Executors.newSingleThreadScheduledExecutor().schedule(new TimerTask() {
 
@@ -200,7 +219,7 @@ public class ThumbnailsPanel extends JPanel {
 
 				}
 			}, 3, TimeUnit.SECONDS);
-			mainPanel.setAddingProcessing(false);
+			workerCallback.setWorking(false);
 		}
 
 		@Override
