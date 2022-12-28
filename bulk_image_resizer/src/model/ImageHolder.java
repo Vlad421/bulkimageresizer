@@ -7,6 +7,9 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
 import java.util.Random;
+import java.util.TimerTask;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
@@ -19,15 +22,20 @@ import javax.swing.border.BevelBorder;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicProgressBarUI;
 
+import utils.ImageFilter;
+import utils.ImageWriter;
+import utils.ProgressCallback;
 import utils.ThumbnailProgressListener;
 
 @SuppressWarnings("serial")
-public class ImageHolder extends JLabel implements Runnable, ThumbnailProgressListener {
+public class ImageHolder extends JLabel implements ThumbnailProgressListener, ProgressCallback {
 	private File file;
 	private JProgressBar progressBar;
-	private ImageIcon iconLabel;
+
 	private String name;
 	private Integer progress;
+	private boolean isProcessing;
+	private int sizeXpixels, sizeYpixels, sizePercent;
 
 	Random r = new Random();
 
@@ -35,12 +43,12 @@ public class ImageHolder extends JLabel implements Runnable, ThumbnailProgressLi
 
 	public ImageHolder(ImageIcon iconLabel, File file) {
 		super(iconLabel);
-
+		progress = 0;
 		JPanel panel = new JPanel();
 		panel.setPreferredSize(size);
 
 		this.file = file;
-		this.iconLabel = iconLabel;
+		// this.iconLabel = iconLabel;
 		name = file.getName();
 		setVerticalAlignment(TOP);
 		setHorizontalTextPosition(SwingConstants.CENTER);
@@ -58,11 +66,12 @@ public class ImageHolder extends JLabel implements Runnable, ThumbnailProgressLi
 		progressBar.setPreferredSize(size);
 		progressBar.setMaximumSize(size);
 		Color col = progressBar.getForeground();
-		progressBar.setForeground(new Color(col.getRed(), col.getGreen(), col.getBlue()));
+		progressBar.setForeground(new Color(col.getRed(), col.getGreen(), col.getBlue(), 120));
 		progressBar.setOrientation(JProgressBar.VERTICAL);
 		progressBar.setOpaque(false);
-		progressBar.setValue(70);
+		//progressBar.setValue(70);
 		progressBar.setFocusable(false);
+		progressBar.setVisible(false);
 
 		progressBar.setUI(new BasicProgressBarUI());
 
@@ -71,35 +80,44 @@ public class ImageHolder extends JLabel implements Runnable, ThumbnailProgressLi
 
 	}
 
-	public void doIt() {
+	public void doIt(File outputDir) {
 		Random r = new Random();
-		int sleep = r.nextInt(500);
-		try {
-			Thread.sleep(sleep);
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		progressBar.setForeground(new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255), r.nextInt(90, 190)));
-		progressBar.setValue(r.nextInt(50));
-		SwingUtilities.invokeLater(() -> revalidate());
-	}
+		isProcessing = true;
+//		new Thread(new Runnable() {
+//
+//			@Override
+//			public void run() {
+//				progressBar.setVisible(true);
+//				while (isProcessing) {
+//					int sleep = r.nextInt(50);
+//					try {
+//						Thread.sleep(sleep);
+//					} catch (InterruptedException e) {
+//
+//						e.printStackTrace();
+//					}
+//
+//					progressBar.setValue(progress);
+//					SwingUtilities.invokeLater(() -> revalidate());
+//
+//				}
+//
+//			}
+//		}).start();
+		progressBar.setVisible(true);
+		ImageWriter writer = ImageWriter.build().setImage(file).setFormat(ImageFilter.getExtention(getName()))
+				.setOutput(outputDir).setProgressCallback(this);
+		System.out.println(writer);
+		writer.write(2000, 2000);
+		isProcessing = false;
+		Executors.newSingleThreadScheduledExecutor().schedule(new TimerTask() {
 
-	@Override
-	public void run() {
-		Random r = new Random();
-		int sleep = r.nextInt(500);
-		while (true) {
-			try {
-				Thread.sleep(sleep);
-			} catch (InterruptedException e) {
+			@Override
+			public void run() {
+				SwingUtilities.invokeLater(() -> progressBar.setVisible(false));
 
-				e.printStackTrace();
 			}
-			progressBar.setForeground(new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255), r.nextInt(90, 190)));
-			progressBar.setValue(r.nextInt(50));
-			SwingUtilities.invokeLater(() -> revalidate());
-		}
+		}, 2, TimeUnit.SECONDS);
 
 	}
 
@@ -110,27 +128,7 @@ public class ImageHolder extends JLabel implements Runnable, ThumbnailProgressLi
 	}
 
 	class ClickListener extends MouseAdapter {
-//		@Override
-//		public void mouseClicked(MouseEvent e) {
-//			Random r = new Random();
-//			if (!progress.isOpaque()) {
-//				Color c = new Color(r.nextInt(255), r.nextInt(255), r.nextInt(255), 80);
-//
-//				progress.setBackground(c);
-//				progress.setBorder(new BevelBorder(BevelBorder.LOWERED, Color.BLUE, null, null, null));
-//				System.out.println(progress.getBackground().toString());
-//				progress.setOpaque(true);
-//
-//			} else {
-//				progress.setBorder(new EmptyBorder(0, 0, 0, 0));
-//				progress.setOpaque(false);
-//			}
-//			SwingUtilities.invokeLater(() -> {
-//				revalidate();
-//				repaint();
-//			});
-//			System.out.println(file.getPath() + " - clicked, opaque = " + progress.isOpaque());
-//		}
+
 		@Override
 		public void mousePressed(MouseEvent e) {
 			Random r = new Random();
@@ -158,6 +156,22 @@ public class ImageHolder extends JLabel implements Runnable, ThumbnailProgressLi
 	public String getName() {
 		// TODO Auto-generated method stub
 		return name;
+	}
+
+	public File getFile() {
+
+		return file;
+	}
+
+	@Override
+	public void setDone() {
+		// TODO Auto-generated method stub
+
+	}
+	@Override
+	public void setProgress(int progress) {
+		progressBar.setValue(progress);
+		SwingUtilities.invokeLater(() -> revalidate());
 	}
 
 }

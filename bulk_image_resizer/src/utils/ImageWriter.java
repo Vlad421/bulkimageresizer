@@ -2,19 +2,21 @@ package utils;
 
 import java.awt.Graphics2D;
 import java.awt.Image;
-import java.awt.Toolkit;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 
 public class ImageWriter {
 
 	private String format;
-	private Integer progress;
+	private ProgressCallback progress;
 	private File output;
 	private File image;
+	private int p;
+	Random r = new Random();
 
 	private ImageWriter() {
 
@@ -34,7 +36,7 @@ public class ImageWriter {
 		return this;
 	}
 
-	public ImageWriter setProgress(Integer progress) {
+	public ImageWriter setProgressCallback(ProgressCallback progress) {
 		this.progress = progress;
 		return this;
 	}
@@ -69,27 +71,34 @@ public class ImageWriter {
 	}
 
 	public void write(int width, int heigth) {
-		try {
 
+		try {
+			setProgress(5, 10);
 			Image scaled = ImageIO.read(image).getScaledInstance(width, heigth, BufferedImage.SCALE_SMOOTH);
+			setProgress(10, 35);
 			BufferedImage bi;
 			if (scaled instanceof BufferedImage img) {
 				bi = img;
+				setProgress(35, 55);
 			} else {
 				bi = new BufferedImage(scaled.getWidth(null), scaled.getHeight(null), BufferedImage.TYPE_INT_RGB);
 
 				Graphics2D bGr = bi.createGraphics();
+				setProgress(55, 65);
 				bGr.drawImage(scaled, 0, 0, null);
 				bGr.dispose();
 			}
 			output.mkdir();
+			setProgress(65, 75);
 			File outputfile = new File(output, image.getName());
 
 			ImageIO.write(bi, format, outputfile);
+			setProgress(75, 95);
 		} catch (IOException e) {
 
 			e.printStackTrace();
 		}
+		setProgress( 100);
 	}
 
 	@Override
@@ -97,5 +106,12 @@ public class ImageWriter {
 		// System.out.println(image != null ? image.toString() : "null");
 		return "path = " + output.getPath() + ", format = " + format + ", image = "
 				+ (image != null ? image.toString() : "null") + ", progress = " + progress;
+	}
+
+	private void setProgress(int min, int max) {
+		progress.setProgress(p = r.nextInt(Math.min(p, min), max));
+	}
+	private void setProgress(int progress) {
+		this.progress.setProgress(p = progress);
 	}
 }

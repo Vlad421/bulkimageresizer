@@ -1,5 +1,7 @@
 package ui;
 
+import java.awt.Component;
+import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.datatransfer.DataFlavor;
@@ -18,26 +20,22 @@ import java.util.List;
 
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JCheckBox;
 import javax.swing.JComponent;
 import javax.swing.JFileChooser;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
+import javax.swing.SwingConstants;
 import javax.swing.UIManager;
 
 import model.ImagesHandler;
 import utils.ImageFilter;
-import utils.ImageFormats;
-import utils.ImageWriter;
 import utils.TxfFilter;
-import java.awt.Insets;
-import javax.swing.JCheckBox;
-import javax.swing.SwingConstants;
-import java.awt.Component;
-import java.awt.Dimension;
 
 @SuppressWarnings("serial")
 public class MainPanel extends JPanel {
@@ -53,7 +51,7 @@ public class MainPanel extends JPanel {
 	private DirectoryPicker picker;
 	private JButton buttonInputLocation;
 	private JButton buttonOutputLocation;
-	private JButton btnNewButton;
+	private JButton btnProcess;
 	private ImagesHandler images;
 	private ImageFilter filter;
 	private boolean isAddingProcessing;
@@ -69,7 +67,7 @@ public class MainPanel extends JPanel {
 		this.images = images;
 		setAlignmentY(TOP_ALIGNMENT);
 		GridBagLayout gridBagLayout = new GridBagLayout();
-		gridBagLayout.rowWeights = new double[] { 0.0, 0.0, 0.0 };
+		gridBagLayout.rowWeights = new double[] { 0.1, 5.0, 0.001 };
 		gridBagLayout.columnWeights = new double[] { 1.0 };
 
 		setLayout(gridBagLayout);
@@ -78,10 +76,10 @@ public class MainPanel extends JPanel {
 
 		picker = new DirectoryPicker();
 		GridBagConstraints gbcToolBar = new GridBagConstraints();
-		gbcToolBar.insets = new Insets(0, 0, 5, 0);
+		// gbcToolBar.insets = new Insets(0, 0, 5, 0);
 		gbcToolBar.anchor = GridBagConstraints.NORTH;
 		gbcToolBar.fill = GridBagConstraints.HORIZONTAL;
-		gbcToolBar.weightx = 1;
+		// gbcToolBar.weightx = 1;
 		gbcToolBar.gridx = 0;
 		gbcToolBar.gridy = 0;
 		add(toolBar, gbcToolBar);
@@ -115,15 +113,15 @@ public class MainPanel extends JPanel {
 		buttonOutputLocation.addActionListener(picker);
 		panelButton.add(buttonOutputLocation);
 
-		btnNewButton = new JButton("Start \ndummy \nprocessing");
-		btnNewButton.setPreferredSize(new Dimension(90, 23));
-		btnNewButton.setMinimumSize(new Dimension(90, 23));
-		btnNewButton.setHorizontalTextPosition(SwingConstants.LEFT);
-		btnNewButton.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnNewButton.setHorizontalAlignment(SwingConstants.LEFT);
-		textWrap(btnNewButton);
+		btnProcess = new JButton("Start \ndummy \nprocessing");
+		btnProcess.setPreferredSize(new Dimension(90, 23));
+		btnProcess.setMinimumSize(new Dimension(90, 23));
+		btnProcess.setHorizontalTextPosition(SwingConstants.LEFT);
+		btnProcess.setAlignmentX(Component.CENTER_ALIGNMENT);
+		btnProcess.setHorizontalAlignment(SwingConstants.LEFT);
+		textWrap(btnProcess);
 
-		toolBar.add(btnNewButton);
+		toolBar.add(btnProcess);
 
 		JPanel sizePanel = new JPanel();
 		sizePanel.setLayout(new BoxLayout(sizePanel, BoxLayout.Y_AXIS));
@@ -160,11 +158,11 @@ public class MainPanel extends JPanel {
 		thumbnailsPanel = new ThumbnailsPanel(images, progressBar, this);
 
 		GridBagConstraints gbcScrollPane = new GridBagConstraints();
-		gbcScrollPane.insets = new Insets(0, 0, 5, 0);
+		// gbcScrollPane.insets = new Insets(0, 0, 5, 0);
 		gbcScrollPane.anchor = GridBagConstraints.NORTH;
 		gbcScrollPane.fill = GridBagConstraints.BOTH;
-		gbcScrollPane.weightx = 1;
-		gbcScrollPane.weighty = 0.5;
+		// gbcScrollPane.weightx = 1;
+		// gbcScrollPane.weighty = 0.5;
 		gbcScrollPane.gridx = 0;
 		gbcScrollPane.gridy = 1;
 
@@ -176,18 +174,18 @@ public class MainPanel extends JPanel {
 
 		scrollPane.setDropTarget(new Drop());
 		GridBagConstraints gbcProgressBar = new GridBagConstraints();
-		gbcProgressBar.insets = new Insets(0, 0, 5, 0);
-		gbcProgressBar.weightx = 1.0;
+		// gbcProgressBar.insets = new Insets(0, 0, 5, 0);
+		// gbcProgressBar.weightx = 1.0;
 		gbcProgressBar.anchor = GridBagConstraints.SOUTH;
 		gbcProgressBar.fill = GridBagConstraints.HORIZONTAL;
 		gbcProgressBar.gridx = 0;
 		gbcProgressBar.gridy = 2;
 
-		gbcProgressBar.weightx = 1;
-		gbcProgressBar.weighty = 0.001;
+		// gbcProgressBar.weightx = 1;
+		// gbcProgressBar.weighty = 0.001;
 		add(progressBar, gbcProgressBar);
 
-		btnNewButton.addActionListener(picker);
+		btnProcess.addActionListener(picker);
 
 	}
 
@@ -202,6 +200,8 @@ public class MainPanel extends JPanel {
 	private void setOutputDirText() {
 		if (images.getOutDir() != null) {
 			txtFieldOutputPath.setText(images.getOutDir().getPath());
+		} else if (images.getOutDir() == null) {
+			txtFieldOutputPath.setText("specify output dir");
 		}
 
 	}
@@ -266,15 +266,18 @@ public class MainPanel extends JPanel {
 					}
 
 				}
-			} else if (e.getSource() == btnNewButton) {
-				System.out.println("button 3");
-				if (images.getSize() > 0) {
+			} else if (e.getSource() == btnProcess) {
+
+				if (images.getSize() > 0 && images.getOutDir() != null) {
 					thumbnailsPanel.doIt();
+				} else if (images.getOutDir() == null) {
+					JOptionPane.showMessageDialog(getParent(), "Output dir have to be specified", "No output dir",
+							JOptionPane.ERROR_MESSAGE);
 				}
 
-				ImageWriter writer = ImageWriter.build().setFormat(ImageFormats.jpeg).setOutput(new File("test.jpeg"))
-						.setProgress(35);
-				System.out.println(writer);
+//				ImageWriter writer = ImageWriter.build().setFormat(ImageFormats.jpeg).setOutput(new File("test.jpeg"))
+//						.setProgress(35);
+//				System.out.println(writer);
 			}
 
 		}

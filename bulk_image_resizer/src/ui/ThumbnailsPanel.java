@@ -12,7 +12,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -27,11 +26,8 @@ import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
-import model.ImagesHandler;
-import utils.ImageFilter;
-import utils.ImageWriter;
 import model.ImageHolder;
-import javax.swing.SwingConstants;
+import model.ImagesHandler;
 
 @SuppressWarnings("serial")
 public class ThumbnailsPanel extends JPanel {
@@ -91,13 +87,13 @@ public class ThumbnailsPanel extends JPanel {
 
 					// while (true) {
 					for (int j = start; j < picsCount; j++) {
-						icons.get(j).doIt();
+						icons.get(j).doIt(images.getOutDir());
 						// System.out.println(images.getImageList());
-						ImageWriter writer = ImageWriter.build().setImage(images.getImage(j))
-								.setFormat(ImageFilter.getExtention(icons.get(j).getName()))
-								.setOutput(images.getOutDir());
-						// System.out.println(writer);
-						writer.write(2000, 2000);
+//						ImageWriter writer = ImageWriter.build().setImage(images.getImage(j))
+//								.setFormat(ImageFilter.getExtention(icons.get(j).getName()))
+//								.setOutput(images.getOutDir());
+//						// System.out.println(writer);
+//						writer.write(2000, 2000);
 					}
 					System.out.println("current thread - " + threadNum + ", pics count = " + picsCount);
 					// }
