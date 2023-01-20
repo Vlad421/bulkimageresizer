@@ -6,11 +6,10 @@ import java.awt.Dimension;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
+import java.io.IOException;
 import java.util.Random;
-import java.util.TimerTask;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
+import javax.imageio.ImageIO;
 import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
@@ -25,6 +24,7 @@ import javax.swing.plaf.basic.BasicProgressBarUI;
 import utils.ImageFilter;
 import utils.ImageWriter;
 import utils.ProgressCallback;
+import utils.ResizeMode;
 import utils.ThumbnailProgressListener;
 
 @SuppressWarnings("serial")
@@ -33,9 +33,8 @@ public class ImageHolder extends JLabel implements ThumbnailProgressListener, Pr
 	private JProgressBar progressBar;
 
 	private String name;
-	private Integer progress;
-	private boolean isProcessing;
-	private int sizeXpixels, sizeYpixels, sizePercent;
+
+	// private boolean isProcessing;
 
 	Random r = new Random();
 
@@ -43,7 +42,7 @@ public class ImageHolder extends JLabel implements ThumbnailProgressListener, Pr
 
 	public ImageHolder(ImageIcon iconLabel, File file) {
 		super(iconLabel);
-		progress = 0;
+
 		JPanel panel = new JPanel();
 		panel.setPreferredSize(size);
 
@@ -69,56 +68,79 @@ public class ImageHolder extends JLabel implements ThumbnailProgressListener, Pr
 		progressBar.setForeground(new Color(col.getRed(), col.getGreen(), col.getBlue(), 120));
 		progressBar.setOrientation(JProgressBar.VERTICAL);
 		progressBar.setOpaque(false);
-		//progressBar.setValue(70);
+		// progressBar.setValue(70);
 		progressBar.setFocusable(false);
 		progressBar.setVisible(false);
 
 		progressBar.setUI(new BasicProgressBarUI());
 
 		add(progressBar);
-		progressBar.addMouseListener(new ClickListener());
+		// addMouseListener(new ClickListener());
 
 	}
 
+	float scaledX = 1000;
+	float scaledY = 1000;
+
 	public void doIt(File outputDir) {
-		Random r = new Random();
-		isProcessing = true;
-//		new Thread(new Runnable() {
-//
-//			@Override
-//			public void run() {
-//				progressBar.setVisible(true);
-//				while (isProcessing) {
-//					int sleep = r.nextInt(50);
-//					try {
-//						Thread.sleep(sleep);
-//					} catch (InterruptedException e) {
-//
-//						e.printStackTrace();
-//					}
-//
-//					progressBar.setValue(progress);
-//					SwingUtilities.invokeLater(() -> revalidate());
-//
-//				}
-//
-//			}
-//		}).start();
+
+	//	isProcessing = true;
+
 		progressBar.setVisible(true);
 		ImageWriter writer = ImageWriter.build().setImage(file).setFormat(ImageFilter.getExtention(getName()))
 				.setOutput(outputDir).setProgressCallback(this);
-	//	System.out.println(writer);
-		writer.write(2000, 2000);
-		isProcessing = false;
-		Executors.newSingleThreadScheduledExecutor().schedule(new TimerTask() {
+		int x = ResizeMode.MODE.getSizeX();
+		int y = ResizeMode.MODE.getSizeY();
+		readImageDimensions();
+		switch (ResizeMode.MODE) {
+			case PERCENT:
+				if (x > 0) {
+					scaledX = scaledX * (float) x / 100;
+					scaledY = scaledY * (float) x / 100;
+				} else {
+					scaledX = scaledX * (float) y / 100;
+					scaledY = scaledY * (float) y / 100;
+				}
+				break;
+			case PIXEL:
+				float scale;
+				if (x > 0) {
+					scale = x / scaledX;
 
-			@Override
-			public void run() {
-				SwingUtilities.invokeLater(() -> progressBar.setVisible(false));
+				} else {
+					scale = y / scaledY;
 
-			}
-		}, 2, TimeUnit.SECONDS);
+				}
+				scaledX = scaledX * scale;
+				scaledY = scaledY * scale;
 
+				break;
+			default:
+				break;
+
+		}
+
+		writer.write((int) scaledX, (int) scaledY);
+	//	isProcessing = false;
+//		Executors.newSingleThreadScheduledExecutor().schedule(new TimerTask() {
+//
+//			@Override
+//			public void run() {
+//				SwingUtilities.invokeLater(() -> progressBar.setVisible(false));
+//
+//			}
+//		}, 2, TimeUnit.SECONDS);
+
+	}
+
+	private void readImageDimensions() {
+		try {
+			scaledX = ImageIO.read(file).getWidth();
+			scaledY = ImageIO.read(file).getHeight();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -137,7 +159,7 @@ public class ImageHolder extends JLabel implements ThumbnailProgressListener, Pr
 
 				progressBar.setBackground(c);
 				progressBar.setBorder(new BevelBorder(BevelBorder.LOWERED, null, null, null, null));
-				System.out.println(progressBar.getBackground().toString());
+				// System.out.println(progressBar.getBackground().toString());
 				progressBar.setOpaque(true);
 
 			} else {
@@ -168,6 +190,7 @@ public class ImageHolder extends JLabel implements ThumbnailProgressListener, Pr
 		// TODO Auto-generated method stub
 
 	}
+
 	@Override
 	public void setProgress(int progress) {
 		progressBar.setValue(progress);

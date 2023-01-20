@@ -26,7 +26,7 @@ import javax.swing.SwingWorker;
 
 import model.ImageHolder;
 import model.ImagesHandler;
-import utils.WorkerCallback;
+import utils.WorkingState;
 
 @SuppressWarnings("serial")
 public class ThumbnailsPanel extends JPanel {
@@ -35,14 +35,14 @@ public class ThumbnailsPanel extends JPanel {
 	private JProgressBar progressBar;
 	private List<ImageHolder> icons = new ArrayList<>();
 	private ImagesHandler images;
-	private MainPanel mainPanel;
-	private WorkerCallback workerCallback;
+//	private MainPanel mainPanel;
+//
+//	private JPanel panel;
 
 	public ThumbnailsPanel(ImagesHandler images, JProgressBar progressBar, MainPanel mainPanel) {
 		this.images = images;
 		this.progressBar = progressBar;
-		this.mainPanel = mainPanel;
-		this.workerCallback = mainPanel;
+
 		layout = new GridLayout(0, 3, 5, 5);
 		progressBar.setStringPainted(true);
 
@@ -56,6 +56,11 @@ public class ThumbnailsPanel extends JPanel {
 
 	public void addImages() {
 		progressBar.setValue(0);
+		if (WorkingState.STATE == WorkingState.RESIZE_DONE) {
+			removeAll();
+			icons.clear();
+			revalidate();
+		}
 		ThumbnailWorker worker = new ThumbnailWorker(images.getLatestAddedImages());
 
 		worker.addPropertyChangeListener(worker);
@@ -67,13 +72,15 @@ public class ThumbnailsPanel extends JPanel {
 	int currentThread;
 
 	public void doIt() {
-		workerCallback.setWorking(true);
+		// workerCallback.setWorking(true);
+		WorkingState.STATE = WorkingState.WORKING;
+		setCursor(Cursor.getPredefinedCursor(Cursor.WAIT_CURSOR));
 		progressBar.setValue(0);
 		new Thread(new Runnable() {
 
 			@Override
 			public void run() {
-				while (workerCallback.isWorking()) {
+				while (WorkingState.STATE == WorkingState.WORKING) {
 					try {
 						Thread.sleep(500);
 					} catch (InterruptedException e) {
@@ -85,12 +92,15 @@ public class ThumbnailsPanel extends JPanel {
 
 							@Override
 							public void run() {
+								
 								SwingUtilities.invokeLater(() -> progressBar.setVisible(false));
-
+								WorkingState.STATE = WorkingState.RESIZE_DONE;
+								System.out.println(WorkingState.STATE);
 							}
 						}, 3, TimeUnit.SECONDS);
-						workerCallback.setWorking(false);
-						System.out.println(mainPanel.isWorking());
+						// workerCallback.setWorking(false);
+						setCursor(null);
+
 					}
 				}
 
@@ -107,7 +117,7 @@ public class ThumbnailsPanel extends JPanel {
 			@Override
 			public void run() {
 
-				while (workerCallback.isWorking()) {
+				while (WorkingState.STATE == WorkingState.WORKING) {
 					try {
 						Thread.sleep(500);
 					} catch (InterruptedException e) {
@@ -158,7 +168,8 @@ public class ThumbnailsPanel extends JPanel {
 
 		@Override
 		protected Void doInBackground() throws Exception {
-			workerCallback.setWorking(true);
+			// workerCallback.setWorking(true);
+			WorkingState.STATE = WorkingState.WORKING;
 			setProgress(0);
 
 			if (toWork.size() != 0) {
@@ -167,7 +178,7 @@ public class ThumbnailsPanel extends JPanel {
 			}
 
 			imageCount = toWork.size();
-			for (int currentImage = 0; currentImage < imageCount; currentImage++) {
+			for (currentImage = 0; currentImage < imageCount; currentImage++) {
 
 				BufferedImage image;
 				try {
@@ -219,7 +230,8 @@ public class ThumbnailsPanel extends JPanel {
 
 				}
 			}, 3, TimeUnit.SECONDS);
-			workerCallback.setWorking(false);
+			// workerCallback.setWorking(false);
+			WorkingState.STATE = WorkingState.NOT_WORKING;
 		}
 
 		@Override

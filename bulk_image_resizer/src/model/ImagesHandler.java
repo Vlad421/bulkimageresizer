@@ -8,7 +8,9 @@ import java.util.List;
 import java.util.Set;
 
 import utils.ImageFilter;
+import utils.PathState;
 import utils.ThumbnailProgressListener;
+import utils.WorkingState;
 
 public class ImagesHandler {
 	private List<File> imageList;
@@ -28,8 +30,13 @@ public class ImagesHandler {
 
 	public boolean addImagesList(List<File> images) {
 
+		
+
 		if (images.size() > 0) {
 			latestAddedImages.clear();
+			if (WorkingState.STATE == WorkingState.RESIZE_DONE) {
+				imageList.clear();
+			}
 
 			for (File file : images) {
 
@@ -41,6 +48,7 @@ public class ImagesHandler {
 					getImagesFromDir(file);
 				}
 			}
+			System.out.println(images.size());
 			return true;
 		}
 		return false;
@@ -49,6 +57,9 @@ public class ImagesHandler {
 
 	public void addImage(File image) {
 		latestAddedImages.clear();
+		if (WorkingState.STATE == WorkingState.RESIZE_DONE) {
+			imageList.clear();
+		}
 		if (!imageList.contains(image) && !image.isDirectory()) {
 			imageList.add(image);
 			latestAddedImages.add(image);
@@ -67,7 +78,7 @@ public class ImagesHandler {
 
 	public String getInDir() {
 		if (inDir != null) {
-			return !isMixedDir ? inDir.getPath() : MIXED_DIRS;
+			return PathState.IN_PATH == PathState.SINGLE_DIR ? inDir.getPath() : MIXED_DIRS;
 
 		} else {
 			return "unknown";
@@ -79,11 +90,13 @@ public class ImagesHandler {
 	private void setInDir() {
 		String prevPath = null;
 		for (File file : imageList) {
-			if (!isMixedDir && !file.getParent().equals(prevPath) && prevPath != null) {
-				isMixedDir = true;
-
-			} else if (isMixedDir) {
+			System.out.println(file.getParent());
+			if (PathState.IN_PATH == PathState.MULTI_DIR) {
 				break;
+			}
+			if (PathState.IN_PATH == PathState.SINGLE_DIR && !file.getParent().equals(prevPath) && prevPath != null) {
+				PathState.IN_PATH = PathState.MULTI_DIR;
+
 			} else {
 				prevPath = file.getParent();
 				this.inDir = file.getParentFile();
@@ -94,10 +107,12 @@ public class ImagesHandler {
 	}
 
 	public void setInDir(File inDir) {
-		if (!isMixedDir) {
+//		if (!isMixedDir) {
+//			this.inDir = inDir;
+//		}
+		if (PathState.IN_PATH == PathState.SINGLE_DIR) {
 			this.inDir = inDir;
 		}
-
 //		System.out.println("Handler in- " + getInDir());
 	}
 
@@ -108,15 +123,22 @@ public class ImagesHandler {
 	public void setOutDir(File outDir) {
 
 		this.outDir = outDir;
-		isOutManualySet = true;
+		PathState.OUT_PATH = PathState.OUT_SET;
+		// isOutManualySet = true;
 
 	}
 
 	private void setOutDir() {
-		if (!isMixedDir && !isOutManualySet) {
+//		if (!isMixedDir && !isOutManualySet) {
+//			this.outDir = new File(inDir.getPath() + "\\out");
+//			// outDir.mkdir();
+//		} else if (!isOutManualySet) {
+//			this.outDir = null;
+//		}
+
+		if (PathState.IN_PATH == PathState.SINGLE_DIR && PathState.OUT_PATH == PathState.OUT_NOT_SET) {
 			this.outDir = new File(inDir.getPath() + "\\out");
-			// outDir.mkdir();
-		} else if (!isOutManualySet) {
+		} else if (PathState.OUT_PATH == PathState.OUT_NOT_SET) {
 			this.outDir = null;
 		}
 
