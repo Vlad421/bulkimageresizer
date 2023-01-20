@@ -10,7 +10,7 @@ import javax.swing.text.PlainDocument;
 @SuppressWarnings("serial")
 public class TxfFilter extends PlainDocument {
 	// Store maximum characters permitted
-	private int maxChars = 3;
+	private int maxChars = 4;
 	Pattern regEx = Pattern.compile("\\d*");
 
 	@Override

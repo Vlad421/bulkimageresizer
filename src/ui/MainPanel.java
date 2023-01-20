@@ -1,6 +1,5 @@
 package ui;
 
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -18,6 +17,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
 import javax.swing.JCheckBox;
@@ -30,16 +30,18 @@ import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.ScrollPaneConstants;
-import javax.swing.SwingConstants;
 import javax.swing.UIManager;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 
 import model.ImagesHandler;
 import utils.ImageFilter;
+import utils.ResizeMode;
 import utils.TxfFilter;
-import utils.WorkerCallback;
+import utils.WorkingState;
 
 @SuppressWarnings("serial")
-public class MainPanel extends JPanel implements WorkerCallback {
+public class MainPanel extends JPanel {
 
 	private ThumbnailsPanel thumbnailsPanel;
 	private JScrollPane scrollPane;
@@ -49,7 +51,7 @@ public class MainPanel extends JPanel implements WorkerCallback {
 	private JTextField txtFieldOutputPath;
 	private JPanel toolBar;
 
-	private DirectoryPicker picker;
+	private ButtonListener action;
 	private JButton buttonInputLocation;
 	private JButton buttonOutputLocation;
 	private JButton btnProcess;
@@ -61,9 +63,11 @@ public class MainPanel extends JPanel implements WorkerCallback {
 	private JPanel panelOptions;
 	private JCheckBox cbAspectRatio;
 	private JCheckBox cbFast;
-	private boolean isWorking;
+
+	private JCheckBox percentChBox;
 
 	public MainPanel(ImagesHandler images) {
+		System.out.println(ResizeMode.MODE);
 		filter = new ImageFilter();
 		this.images = images;
 		setAlignmentY(TOP_ALIGNMENT);
@@ -75,12 +79,12 @@ public class MainPanel extends JPanel implements WorkerCallback {
 
 		toolBar = new JPanel();
 
-		picker = new DirectoryPicker();
+		action = new ButtonListener();
 		GridBagConstraints gbcToolBar = new GridBagConstraints();
-		
+
 		gbcToolBar.anchor = GridBagConstraints.NORTH;
 		gbcToolBar.fill = GridBagConstraints.HORIZONTAL;
-	
+
 		gbcToolBar.gridx = 0;
 		gbcToolBar.gridy = 0;
 		add(toolBar, gbcToolBar);
@@ -106,24 +110,62 @@ public class MainPanel extends JPanel implements WorkerCallback {
 
 		buttonInputLocation = new JButton(UIManager.getIcon("FileView.directoryIcon"));
 
-		buttonInputLocation.addActionListener(picker);
+		buttonInputLocation.addActionListener(action);
 		panelButton.add(buttonInputLocation);
 
 		buttonOutputLocation = new JButton(UIManager.getIcon("FileView.floppyDriveIcon"));
 
-		buttonOutputLocation.addActionListener(picker);
+		buttonOutputLocation.addActionListener(action);
 		panelButton.add(buttonOutputLocation);
 
-		btnProcess = new JButton("Start \ndummy \nprocessing");
+		btnProcess = new JButton("Resize");
 		btnProcess.setPreferredSize(new Dimension(90, 23));
 		btnProcess.setMinimumSize(new Dimension(90, 23));
-		btnProcess.setHorizontalTextPosition(SwingConstants.LEFT);
-		btnProcess.setAlignmentX(Component.CENTER_ALIGNMENT);
-		btnProcess.setHorizontalAlignment(SwingConstants.LEFT);
+//		btnProcess.setHorizontalTextPosition(SwingConstants.LEFT);
+//		btnProcess.setAlignmentX(JButton.LEFT_ALIGNMENT);
+//		btnProcess.setHorizontalAlignment(SwingConstants.LEFT);
 		textWrap(btnProcess);
 
-		toolBar.add(btnProcess);
+		// toolBar.add(btnProcess);
 
+		JPanel panel = new JPanel();
+		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+		toolBar.add(panel);
+
+		percentChBox = new JCheckBox("Percent resize");
+
+		panel.add(percentChBox);
+
+		panel.add(percentChBox);
+		panel.add(btnProcess);
+
+		JPanel labelPanel = new JPanel();
+		labelPanel.setLayout(new BoxLayout(labelPanel, BoxLayout.Y_AXIS));
+		// labelPanel.setAlignmentY(TOP_ALIGNMENT);
+
+		JLabel labelX = new JLabel("X(px):");
+		JLabel labelY = new JLabel("Y(px):");
+
+		labelPanel.add(Box.createVerticalGlue());
+		labelPanel.add(labelX);
+		labelPanel.add(Box.createVerticalGlue());
+		labelPanel.add(labelY);
+		labelPanel.add(Box.createVerticalGlue());
+		toolBar.add(labelPanel);
+		percentChBox.addActionListener((e) -> {
+			if (percentChBox.isSelected()) {
+				ResizeMode.MODE.setMode(percentChBox.isSelected());
+				labelX.setText("X(%):");
+				labelY.setText("Y(%):");
+				System.out.println(ResizeMode.MODE);
+			} else {
+				ResizeMode.MODE.setMode(percentChBox.isSelected());
+				labelX.setText("X(px):");
+				labelY.setText("Y(px):");
+				System.out.println(ResizeMode.MODE);
+			}
+
+		});
 		JPanel sizePanel = new JPanel();
 		sizePanel.setLayout(new BoxLayout(sizePanel, BoxLayout.Y_AXIS));
 
@@ -137,6 +179,68 @@ public class MainPanel extends JPanel implements WorkerCallback {
 		txfHeigth.setColumns(2);
 		txfHeigth.setDocument(new TxfFilter());
 
+		txfHeigth.getDocument().addDocumentListener(new DocumentListener() {
+
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				if (txfHeigth.getText().length() > 0) {
+					txfWidth.setEditable(false);
+				} else {
+					txfWidth.setEditable(true);
+				}
+
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				if (txfHeigth.getText().length() > 0) {
+					txfWidth.setEditable(false);
+				} else {
+					txfWidth.setEditable(true);
+				}
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				if (txfHeigth.getText().length() > 0) {
+					txfWidth.setEditable(false);
+				} else {
+					txfWidth.setEditable(true);
+				}
+			}
+		});
+
+		txfWidth.getDocument().addDocumentListener(new DocumentListener() {
+
+			@Override
+			public void removeUpdate(DocumentEvent e) {
+				if (txfWidth.getText().length() > 0) {
+					txfHeigth.setEditable(false);
+				} else {
+					txfHeigth.setEditable(true);
+				}
+
+			}
+
+			@Override
+			public void insertUpdate(DocumentEvent e) {
+				if (txfWidth.getText().length() > 0) {
+					txfHeigth.setEditable(false);
+				} else {
+					txfHeigth.setEditable(true);
+				}
+			}
+
+			@Override
+			public void changedUpdate(DocumentEvent e) {
+				if (txfWidth.getText().length() > 0) {
+					txfHeigth.setEditable(false);
+				} else {
+					txfHeigth.setEditable(true);
+				}
+			}
+		});
+
 		sizePanel.add(txfWidth);
 		sizePanel.add(txfHeigth);
 		toolBar.add(sizePanel);
@@ -147,6 +251,7 @@ public class MainPanel extends JPanel implements WorkerCallback {
 
 		cbAspectRatio = new JCheckBox("Keep aspect ratio");
 		cbAspectRatio.setSelected(true);
+		cbAspectRatio.setEnabled(false);
 		cbAspectRatio.addActionListener((e) -> images.setAspectRatioKeep(cbAspectRatio.isSelected()));
 		panelOptions.add(cbAspectRatio);
 
@@ -157,6 +262,7 @@ public class MainPanel extends JPanel implements WorkerCallback {
 		progressBar.setVisible(false);
 
 		thumbnailsPanel = new ThumbnailsPanel(images, progressBar, this);
+	//	thumbnailsPanel.addParent(this);
 
 		GridBagConstraints gbcScrollPane = new GridBagConstraints();
 		// gbcScrollPane.insets = new Insets(0, 0, 5, 0);
@@ -186,8 +292,10 @@ public class MainPanel extends JPanel implements WorkerCallback {
 		// gbcProgressBar.weighty = 0.001;
 		add(progressBar, gbcProgressBar);
 
-		btnProcess.addActionListener(picker);
+		btnProcess.addActionListener(action);
 
+		ResizeMode.MODE.setMode(percentChBox.isSelected());
+		System.out.println(ResizeMode.MODE);
 	}
 
 	public void switchFocus() {
@@ -216,10 +324,10 @@ public class MainPanel extends JPanel implements WorkerCallback {
 
 	}
 
-	class DirectoryPicker implements ActionListener {
+	class ButtonListener implements ActionListener {
 		JFileChooser chooser;
 
-		public DirectoryPicker() {
+		public ButtonListener() {
 			chooser = new Choser();
 
 		}
@@ -264,17 +372,33 @@ public class MainPanel extends JPanel implements WorkerCallback {
 
 				}
 			} else if (e.getSource() == btnProcess) {
+//				if (!(txfWidth.getText().length() > 0) && !(txfHeigth.getText().length() > 0)) {
+//					JOptionPane.showMessageDialog(getParent(), "Size have to be specified", "No size specified",
+//							JOptionPane.ERROR_MESSAGE);
+//				} else
+//					
 
-				if (images.getSize() > 0 && images.getOutDir() != null) {
-					thumbnailsPanel.doIt();
+				if (images.getSize() <= 0) {
+					JOptionPane.showMessageDialog(getParent(), "Add some images", "No images",
+							JOptionPane.INFORMATION_MESSAGE);
+				} else if (images.getSize() > 0 && images.getOutDir() != null) {
+
+					if (!(txfWidth.getText().length() > 0) && !(txfHeigth.getText().length() > 0)) {
+						JOptionPane.showMessageDialog(getParent(), "Size have to be specified", "No size specified",
+								JOptionPane.ERROR_MESSAGE);
+					} else {
+						String width = txfWidth.getText().length() > 0 ? txfWidth.getText() : "0";
+						String heigth = txfHeigth.getText().length() > 0 ? txfHeigth.getText() : "0";
+						System.out.println(width + "    " + heigth);
+						ResizeMode.MODE.setSizeX(Integer.parseInt(width));
+						ResizeMode.MODE.setSizeY(Integer.parseInt(heigth));
+						thumbnailsPanel.doIt();
+					}
+
 				} else if (images.getOutDir() == null) {
 					JOptionPane.showMessageDialog(getParent(), "Output dir have to be specified", "No output dir",
 							JOptionPane.ERROR_MESSAGE);
 				}
-
-//				ImageWriter writer = ImageWriter.build().setFormat(ImageFormats.jpeg).setOutput(new File("test.jpeg"))
-//						.setProgress(35);
-//				System.out.println(writer);
 			}
 
 		}
@@ -286,8 +410,9 @@ public class MainPanel extends JPanel implements WorkerCallback {
 		List<File> filesList = new ArrayList<>();
 
 		public synchronized void drop(DropTargetDropEvent evt) {
-			if (!isWorking) {
-				
+			System.out.println(WorkingState.STATE);
+			if (WorkingState.STATE == WorkingState.NOT_WORKING || WorkingState.STATE == WorkingState.RESIZE_DONE) {
+
 				filesList.clear();
 				evt.acceptDrop(DnDConstants.ACTION_COPY_OR_MOVE);
 				Transferable t = evt.getTransferable();
@@ -326,18 +451,6 @@ public class MainPanel extends JPanel implements WorkerCallback {
 
 		}
 
-	}
-
-	@Override
-	public void setWorking(boolean working) {
-		this.isWorking = working;
-
-	}
-
-	@Override
-	public boolean isWorking() {
-
-		return isWorking;
 	}
 
 }

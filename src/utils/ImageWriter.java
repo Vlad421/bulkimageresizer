@@ -47,34 +47,35 @@ public class ImageWriter {
 		return this;
 	}
 
-	public void write(Image image, File output, String format, Integer progress, int width, int heigth) {
-
-		Image scaled = image.getScaledInstance(width, heigth, BufferedImage.SCALE_SMOOTH);
-		BufferedImage bi;
-		if (scaled instanceof BufferedImage img) {
-			bi = img;
-		} else {
-			bi = new BufferedImage(scaled.getWidth(null), scaled.getHeight(null), BufferedImage.TYPE_INT_ARGB);
-
-			Graphics2D bGr = bi.createGraphics();
-			bGr.drawImage(scaled, 0, 0, null);
-			bGr.dispose();
-		}
-
-		File outputfile = output;
-		try {
-			ImageIO.write(bi, format, outputfile);
-		} catch (IOException e) {
-
-			e.printStackTrace();
-		}
-	}
+//	public void write(Image image, File output, String format, int width, int heigth) {
+//
+//		Image scaled = image.getScaledInstance(width, heigth, BufferedImage.SCALE_SMOOTH);
+//		BufferedImage bi;
+//		if (scaled instanceof BufferedImage img) {
+//			bi = img;
+//		} else {
+//			bi = new BufferedImage(scaled.getWidth(null), scaled.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+//
+//			Graphics2D bGr = bi.createGraphics();
+//			bGr.drawImage(scaled, 0, 0, null);
+//			bGr.dispose();
+//		}
+//
+//		File outputfile = output;
+//		try {
+//			ImageIO.write(bi, format, outputfile);
+//		} catch (IOException e) {
+//
+//			e.printStackTrace();
+//		}
+//	}
 
 	public void write(int width, int heigth) {
+		int hints = ResizeMode.MODE.isFast() ? BufferedImage.SCALE_FAST : BufferedImage.SCALE_SMOOTH;
 
 		try {
 			setProgress(5, 10);
-			Image scaled = ImageIO.read(image).getScaledInstance(width, heigth, BufferedImage.SCALE_SMOOTH);
+			Image scaled = ImageIO.read(image).getScaledInstance(width, heigth, hints);
 			setProgress(10, 35);
 			BufferedImage bi;
 			if (scaled instanceof BufferedImage img) {
@@ -98,7 +99,7 @@ public class ImageWriter {
 
 			e.printStackTrace();
 		}
-		setProgress( 100);
+		setProgress(100);
 	}
 
 	@Override
@@ -111,6 +112,7 @@ public class ImageWriter {
 	private void setProgress(int min, int max) {
 		progress.setProgress(p = r.nextInt(Math.min(p, min), max));
 	}
+
 	private void setProgress(int progress) {
 		this.progress.setProgress(p = progress);
 	}
